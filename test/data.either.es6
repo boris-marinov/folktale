@@ -10,8 +10,18 @@
 //
 //----------------------------------------------------------------------
 
-module.exports = {
-  maybe: require('./maybe'),
-  either: require('./either')
-};
+const { property, forall} = require('jsverify');
+const _ = require('../').data.either;
 
+describe('Data.Either', function() {
+  describe('Setoid', function () {
+    property('equals', 'integer', function(a) {
+        return _.Left(a).equals(_.Left(a))
+    });
+    property('equals', 'integer', function(a) {
+        return !_.Left(a).equals(_.Right(a))
+    });
+    debugger
+  });
+
+});
