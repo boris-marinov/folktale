@@ -64,6 +64,21 @@ const assertEither = assertType(Either)
 const Left  = (value) => new Either.Left.constructor({ value });
 const Right = (value) => new Either.Right.constructor({ value });
 
+Either.fromNullable = function(a) {
+  return a != null
+    ? Right(a)
+    : Left(a);
+}
+
+Either.try = function(f) {
+  return function(...args) {
+    try {
+      return Right(f(...args));
+    } catch(e) {
+      return Left(e);
+    }
+  }
+}
 
 // -- Setoid -----------------------------------------------------------
 _Left.prototype[fl.equals] = function(anEither) {
@@ -73,9 +88,8 @@ _Left.prototype[fl.equals] = function(anEither) {
 
 _Right.prototype[fl.equals] = function(anEither) {
   assertEither('Either.Right#equals', anEither);
-  return anEither.isRight === true && anEither.value === this.value;
+  return anEither.isRight && anEither.value === this.value;
 };
-
 
 // -- Functor ----------------------------------------------------------
 _Left.prototype[fl.map] = function(transformation) {
@@ -102,7 +116,6 @@ _Right.prototype[fl.ap] = function(anEither) {
 
 // -- Applicative ------------------------------------------------------
 Either[fl.of] = Right;
-
 
 // -- Chain ------------------------------------------------------------
 _Left.prototype[fl.chain] = function(transformation) {
@@ -140,7 +153,40 @@ _Right.prototype.inspect = _Right.prototype.toString
 
 
 // -- Extracting values and recovering ---------------------------------
-//TODO
+
+// NOTE:
+// `get` is similar to Comonad's `extract`. The reason we don't implement
+// Comonad here is that `get` is partial, and not defined for Nothing
+// values.
+
+_Left.prototype.get = function() {
+  throw new TypeError(`Can't extract the value of a Left.
+
+Left does not contain a normal value - it contains an error.
+You might consider switching from Either#get to Either#getOrElse, or some other method
+that is not partial.
+  `);
+};
+
+_Right.prototype.get = function() {
+  return this.value;
+};
+
+_Left.prototype.getOrElse = function(default_) {
+  return default_;
+};
+
+_Right.prototype.getOrElse = function(_default_) {
+  return this.value;
+};
+
+_Left.prototype.orElse = function(handler) {
+  return handler();
+};
+
+_Right.prototype.orElse = function() {
+  return this;
+};
 
 // -- JSON conversions -------------------------------------------------
 _Left.prototype.toJSON = function() {
@@ -161,5 +207,8 @@ _Right.prototype.toJSON = function() {
 module.exports = {
   Left,
   Right,
-  type:Either
+  type:Either,
+  of:Either.of,
+  fromNullable:Either.fromNullable,
+  fromNullable:Either.try
 }
